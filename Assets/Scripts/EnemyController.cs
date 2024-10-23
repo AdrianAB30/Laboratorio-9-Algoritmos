@@ -45,6 +45,7 @@ public class EnemyController : MonoBehaviour
             {
                 MoveEnemyToPlayer(player.transform.position);
                 visionCone.transform.position = new Vector3(transform.position.x - 0.5f, transform.position.y, transform.position.z);
+                DrainEnergy();
             }
             else
             {
@@ -54,8 +55,6 @@ public class EnemyController : MonoBehaviour
                 {
                     UpdateCurrentIndex();
                 }
-
-                DrainEnergy(currentWeight);
             }
 
             ChangeDirectionSprite();
@@ -71,27 +70,27 @@ public class EnemyController : MonoBehaviour
             if (fovReferenceToPlayer.x > 0)
             {
                 spriteRenderer.flipX = true;
-                visionCone.transform.localPosition = new Vector3(0.5f, 0, 0);  
-                visionCone.transform.localRotation = Quaternion.Euler(0, 0, -90);  
+                visionCone.transform.localPosition = new Vector3(0.5f, 0, 0);
+                visionCone.transform.localRotation = Quaternion.Euler(0, 0, -90);
             }
             else if (fovReferenceToPlayer.x < 0)
             {
                 spriteRenderer.flipX = false;
-                visionCone.transform.localPosition = new Vector3(-0.5f, 0, 0);  
-                visionCone.transform.localRotation = Quaternion.Euler(0, 0, 90);  
+                visionCone.transform.localPosition = new Vector3(-0.5f, 0, 0);
+                visionCone.transform.localRotation = Quaternion.Euler(0, 0, 90);
             }
         }
         else
         {
             if (fovReferenceToPlayer.y > 0)
             {
-                visionCone.transform.localPosition = new Vector3(0, 0.5f, 0);  
-                visionCone.transform.localRotation = Quaternion.Euler(0, 0, 0);  
+                visionCone.transform.localPosition = new Vector3(0, 0.5f, 0);
+                visionCone.transform.localRotation = Quaternion.Euler(0, 0, 0);
             }
             else if (fovReferenceToPlayer.y < 0)
             {
-                visionCone.transform.localPosition = new Vector3(0, -0.5f, 0);  
-                visionCone.transform.localRotation = Quaternion.Euler(0, 0, 180);  
+                visionCone.transform.localPosition = new Vector3(0, -0.5f, 0);
+                visionCone.transform.localRotation = Quaternion.Euler(0, 0, 180);
             }
         }
     }
@@ -100,7 +99,7 @@ public class EnemyController : MonoBehaviour
     {
         if (collision.gameObject == player)
         {
-            isChasingPlayer = true; 
+            isChasingPlayer = true;
         }
     }
 
@@ -108,7 +107,7 @@ public class EnemyController : MonoBehaviour
     {
         if (collision.gameObject.tag == "Player")
         {
-            isChasingPlayer = false; 
+            isChasingPlayer = false;
         }
     }
 
@@ -152,24 +151,35 @@ public class EnemyController : MonoBehaviour
 
     private void HandleNodeCollision(Collision2D collision)
     {
+
         if (collision.gameObject == objectiveNode)
         {
             NodeControl currentNode = collision.gameObject.GetComponent<NodeControl>();
 
             if (currentNode.connections.Length > 0)
             {
+                Debug.Log("Colisión con el nodo: " + currentNode.gameObject.name);
                 (NodeControl nextNode, float weight) = currentNode.SelectRandomConnection();
 
                 if (nextNode != null)
                 {
                     SetObjective(nextNode.gameObject);
+                    Debug.Log("Nuevo objetivo: " + nextNode.gameObject.name);
                 }
                 else
                 {
-                    UpdateCurrentIndex(); 
+                    Debug.LogWarning("No se encontro un nodo papeto");
+                    UpdateCurrentIndex();
                 }
 
-                currentWeight = weight;  
+                currentWeight = weight;
+                energy = energy - currentWeight;
+                Debug.Log("Peso del Nodo:" + currentWeight + " Energía restante: " + energy);
+
+                if (energy <= 0)
+                {
+                    isResting = true;
+                }
             }
             else
             {
@@ -195,9 +205,13 @@ public class EnemyController : MonoBehaviour
 
     private void DrainEnergy(float weight = 0)
     {
-        if (weight > 0 && !isChasingPlayer)
+        if (weight > 0)
         {
-            energy -= weight * Time.deltaTime;  
+            energy = energy - weight;
+        }
+        else
+        {
+            energy = energy - Time.deltaTime;
         }
 
         if (energy <= 0)
